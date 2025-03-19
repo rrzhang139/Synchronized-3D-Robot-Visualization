@@ -1,0 +1,11 @@
+fastapi>=0.103.1
+uvicorn>=0.23.2
+yourdfpy>=0.0.52
+websockets>=11.0.3
+typing-extensions>=4.7.1
+pydantic>=2.3.0
+python-multipart>=0.0.6
+pyopenssl>=23.2.0
+black>=23.7.0
+ruff>=0.0.286
+pytest>=7.4.0
