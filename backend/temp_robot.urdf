@@ -9,7 +9,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="meshes/visual/link_0.glb"/>
+        <mesh filename="meshes/visual/link_0.obj"/>
       </geometry>
     </visual>
     <collision>
@@ -36,7 +36,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.0 -0.1475"/>
       <geometry>
-        <mesh filename="meshes/visual/link_1.glb"/>
+        <mesh filename="meshes/visual/link_1.obj"/>
       </geometry>
     </visual>
     <collision>
@@ -63,7 +63,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.01 -0.36"/>
       <geometry>
-        <mesh filename="meshes/visual/link_2.glb"/>
+        <mesh filename="meshes/visual/link_2.obj"/>
       </geometry>
     </visual>
     <collision>
@@ -90,7 +90,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.0 -0.588"/>
       <geometry>
-        <mesh filename="meshes/visual/link_3.glb"/>
+        <mesh filename="meshes/visual/link_3.obj"/>
       </geometry>
     </visual>
     <collision>
@@ -117,7 +117,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 -0.0105 -0.78"/>
       <geometry>
-        <mesh filename="meshes/visual/link_4.glb"/>
+        <mesh filename="meshes/visual/link_4.obj"/>
       </geometry>
     </visual>
     <collision>
@@ -144,7 +144,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.0 -0.9875"/>
       <geometry>
-        <mesh filename="meshes/visual/link_5.glb"/>
+        <mesh filename="meshes/visual/link_5.obj"/>
       </geometry>
     </visual>
     <collision>
@@ -171,7 +171,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.0707 -1.18"/>
       <geometry>
-        <mesh filename="meshes/visual/link_6.glb"/>
+        <mesh filename="meshes/visual/link_6.obj"/>
       </geometry>
     </visual>
     <collision>
@@ -198,7 +198,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0.0 -1.271"/>
       <geometry>
-        <mesh filename="meshes/visual/link_7.glb"/>
+        <mesh filename="meshes/visual/link_7.obj"/>
       </geometry>
     </visual>
     <collision>

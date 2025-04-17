@@ -1,4 +1,5 @@
 import os
+import uuid
 import time
 import math
 import threading
@@ -6,7 +7,8 @@ import logging
 from typing import Dict
 
 import numpy as np
-from urdfpy import URDF
+from yourdfpy import URDF
+from backend.config import ASSETS_DIR, UPLOADS_DIR, DEFAULT_URDF, get_upload_dir, get_upload_url
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,30 +25,56 @@ class RobotController:
         self.joint_positions = {}
         self.timestamp = 0.0
         
-        self.load_robot_model()
+        self.init_load_robot_model()
         
         self.initialize_joint_positions()
     
-    def load_robot_model(self):
+    def init_load_robot_model(self):
         try:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(current_dir)
-            urdf_path = os.path.join(project_root, "backend", "assets", "iiwa14_glb.urdf")
-            
-            if not os.path.exists(urdf_path):
-                logger.error(f"URDF file not found at path: {urdf_path}")
-                raise FileNotFoundError(f"URDF file not found at path: {urdf_path}")
-            
+            urdf_path = str(ASSETS_DIR / DEFAULT_URDF)
             logger.info(f"Loading robot model from: {urdf_path}")
             
             self.robot = URDF.load(urdf_path)
-            
-            self.joint_names = [joint.name for joint in self.robot.joints if joint.joint_type != "fixed"]
+            self.joint_names = [joint for joint in self.robot.joint_names]
             
             logger.info(f"Robot model loaded successfully with joints: {self.joint_names}")
         except Exception as e:
             logger.error(f"Error loading robot model: {e}")
             raise
+    
+    async def update_robot_model(self, urdf_file, mesh_files=None):
+        try:
+            with self.lock:
+                model_id = str(uuid.uuid4())
+                model_dir = get_upload_dir(model_id)
+                model_dir.mkdir(exist_ok=True)
+                
+                urdf_filename = urdf_file.filename
+                urdf_content = await urdf_file.read()  
+                urdf_path = str(model_dir / urdf_filename)
+                with open(urdf_path, 'wb') as f:
+                    f.write(urdf_content)
+                
+                if mesh_files:
+                    for mesh_file in mesh_files:
+                        full_path = mesh_file.filename
+                        parent_dir = os.path.dirname(str(full_path))
+                        os.makedirs(parent_dir, exist_ok=True)
+                        mesh_content = await mesh_file.read()
+                        with open(full_path, "wb") as f:
+                            f.write(mesh_content)
+                            f.flush()
+                            os.fsync(f.fileno())
+                
+                self.robot = URDF.load(urdf_path)
+                self.joint_names = [joint for joint in self.robot.joint_names]
+                self.initialize_joint_positions()
+                
+                logger.info(f"Robot model updated successfully with joints: {self.joint_names}")
+                return get_upload_url(model_id, urdf_filename), True
+        except Exception as e:
+            logger.error(f"Error updating robot model: {e}")
+            return None, False
     
     def initialize_joint_positions(self):
         with self.lock:
@@ -92,7 +120,10 @@ class RobotController:
             logger.info("Robot controller started")
     
     def stop(self):
+        """Stop the robot controller thread gracefully."""
+        logger.info("Stopping robot controller...")
         self.running = False
+        
         if self.thread:
             self.thread.join(timeout=2.0)
             self.thread = None

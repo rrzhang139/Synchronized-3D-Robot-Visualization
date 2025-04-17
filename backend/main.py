@@ -1,16 +1,20 @@
 import os
 import ssl
+import signal
 import asyncio
 import json
 import logging
 from typing import Dict, List, Set
-import threading
+from fastapi import HTTPException
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from backend.robot_controller import RobotController
+from backend.config import ASSETS_DIR, UPLOADS_DIR, ASSETS_URL_PATH, UPLOADS_URL_PATH
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,7 +22,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger("backend")
 
-app = FastAPI(title="Robot Visualization Server")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup (replaces the @app.on_event("startup") handler)
+    robot_controller.start()
+    asyncio.create_task(publish_joint_states())
+    
+    yield
+    
+    robot_controller.stop()
+
+app = FastAPI(
+    title="Robot Visualization Server",
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,6 +44,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static file directories
+app.mount(ASSETS_URL_PATH, StaticFiles(directory=ASSETS_DIR), name="assets")
+app.mount(UPLOADS_URL_PATH, StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 robot_controller = RobotController()
 
@@ -43,7 +64,7 @@ class ConnectionManager:
     
     async def disconnect(self, websocket: WebSocket):
         async with self.lock:
-            self.active_connections.remove(websocket)
+            self.active_connections.discard(websocket)
             logger.info(f"Client disconnected. Active connections: {len(self.active_connections)}")
     
     async def broadcast(self, message: Dict):
@@ -67,15 +88,15 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@app.on_event("startup")
-async def startup_event():
-    robot_controller.start()
+# @app.on_event("startup")
+# async def startup_event():
+#     robot_controller.start()
     
-    asyncio.create_task(publish_joint_states())
+#     asyncio.create_task(publish_joint_states())
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    robot_controller.stop()
+# @app.on_event("shutdown")
+# async def shutdown_event():
+#     robot_controller.stop()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

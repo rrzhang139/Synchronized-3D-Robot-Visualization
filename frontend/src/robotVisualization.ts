@@ -5,8 +5,12 @@ import { URDFRobot } from 'urdf-loader';
 import { WebSocketClient } from './webSocketClient';
 import { MessageTypes } from './types/messageTypes';
 
-// @ts-ignore - Import the URDF Loader module (TypeScript definitions may not be available)
+// @ts-ignore
 import URDFLoader from 'urdf-loader';
+
+// Define a constant for the asset path
+const ASSETS_PATH = '/assets';
+const SERVER_BASE = 'localhost:8000'
 
 /**
  * Class for handling 3D robot visualization using Three.js
@@ -20,6 +24,7 @@ export class RobotVisualization {
   private container: HTMLElement;
   private wsClient: WebSocketClient;
   private animationFrameId: number | null = null;
+  public assetsPath: string = ASSETS_PATH;
 
   constructor(container: HTMLElement, wsClient: WebSocketClient) {
     this.container = container;
@@ -49,20 +54,11 @@ export class RobotVisualization {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.25;
 
-    // Add lights
     this.setupLights();
-
-    // Add a grid helper for reference
     const gridHelper = new THREE.GridHelper(10, 10);
     this.scene.add(gridHelper);
-
-    // Load the robot URDF model
-    this.loadRobotModel();
-
-    // Setup WebSocket event listener for joint updates
+    this.loadRobotModel(this.assetsPath + '/iiwa14_glb.urdf');
     this.setupWebSocketListener();
-
-    // Handle window resize
     window.addEventListener('resize', this.onWindowResize.bind(this));
   }
 
@@ -92,14 +88,20 @@ export class RobotVisualization {
   /**
    * Load the URDF robot model
    */
-  private loadRobotModel(): void {
-    // Get the URDF Loader
+  public loadRobotModel(modelUrl: string): void {
+    if (this.robot) {
+      this.scene.remove(this.robot);
+      this.robot = null;
+    }
+
+    if (!modelUrl.startsWith('http')) {
+      modelUrl = 'https://' + SERVER_BASE + modelUrl;
+    }
+
     const loader = new URDFLoader();
     
-    // Configure to use packaged meshes and textures
     loader.loadMeshCb = (path: string, manager: THREE.LoadingManager, onComplete) => {
       return new Promise((resolve) => {
-        // Load GLB files using GLTFLoader
         const gltfLoader = new GLTFLoader(manager);
         gltfLoader.load(
           path,
@@ -117,28 +119,21 @@ export class RobotVisualization {
         );
       });
     };
-
-    // Load the robot model from the local assets folder
-    const modelUrl = '/assets/iiwa14_glb.urdf';
     
     loader.load(
       modelUrl,
       (robot: URDFRobot) => {
         this.robot = robot;
         
-        // Initial robot position and setup
         robot.position.set(0, 0, 0);
-        // pitch (+ => down), yaw, roll (+ => right)
         robot.rotation.set(0, 0, 0);
         
-        // Enable shadows for robot parts
         robot.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
             child.receiveShadow = true;
           }
         });
-        console.log(robot)
         this.scene.add(robot);
         console.log('Robot URDF model loaded successfully');
       },
@@ -162,7 +157,6 @@ export class RobotVisualization {
   private setupWebSocketListener(): void {
     this.wsClient.on(MessageTypes.JOINT_STATES, (data) => {
       if (this.robot && data.joint_positions) {
-        // Update robot joint positions
         Object.entries(data.joint_positions).forEach(([jointName, position]) => {
           if (this.robot) {
             this.robot.setJointValue(jointName, position as number);
@@ -170,6 +164,8 @@ export class RobotVisualization {
         });
       }
     });
+
+
   }
 
   /**
@@ -221,7 +217,6 @@ export class RobotVisualization {
     window.removeEventListener('resize', this.onWindowResize.bind(this));
     this.container.removeChild(this.renderer.domElement);
     
-    // Dispose of Three.js resources
     this.renderer.dispose();
   }
 }
