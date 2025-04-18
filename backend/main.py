@@ -24,7 +24,6 @@ logger = logging.getLogger("backend")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup (replaces the @app.on_event("startup") handler)
     robot_controller.start()
     asyncio.create_task(publish_joint_states())
     
@@ -87,6 +86,37 @@ class ConnectionManager:
                         self.active_connections.remove(websocket)
 
 manager = ConnectionManager()
+
+
+@app.post("/upload_urdf")
+async def upload_urdf(request: Request):
+    try:
+        file_data = await request.form()
+        
+        urdf_file = file_data.get("file")
+        if not urdf_file:
+            return {"status": "error", "message": "No URDF file provided"}
+        
+        mesh_files = file_data.getlist("mesh_files")
+        logger.info(f"Uploading URDF with {len(mesh_files)} mesh files")
+        
+        model_url, success = await robot_controller.update_robot_model(
+            urdf_file,
+            mesh_files=mesh_files
+        )
+        
+        if success:
+            return {
+                "status": "success", 
+                "message": "Robot model updated successfully",
+                "model_url": model_url
+            }
+        else:
+            raise HTTPException(500, "Failed to update robot model")
+            
+    except Exception as e:
+        logger.error(f"Error uploading URDF: {e}")
+        raise HTTPException(500, f"Failed to update robot model: {str(e)}")
 
 # @app.on_event("startup")
 # async def startup_event():

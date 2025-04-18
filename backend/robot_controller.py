@@ -57,11 +57,12 @@ class RobotController:
                 
                 if mesh_files:
                     for mesh_file in mesh_files:
-                        full_path = mesh_file.filename
-                        parent_dir = os.path.dirname(str(full_path))
+                        relative_path = "meshes/" + "/".join(mesh_file.filename.split('/')[:-1])
+                        absolute_path = os.path.join(model_dir, relative_path)
+                        parent_dir = os.path.dirname(absolute_path)
                         os.makedirs(parent_dir, exist_ok=True)
                         mesh_content = await mesh_file.read()
-                        with open(full_path, "wb") as f:
+                        with open(absolute_path, "wb") as f:
                             f.write(mesh_content)
                             f.flush()
                             os.fsync(f.fileno())
@@ -77,9 +78,9 @@ class RobotController:
             return None, False
     
     def initialize_joint_positions(self):
-        with self.lock:
-            for joint_name in self.joint_names:
-                self.joint_positions[joint_name] = 0.0
+        # with self.lock:
+        for joint_name in self.joint_names:
+            self.joint_positions[joint_name] = 0.0
     
     def update_joint_positions(self):
         with self.lock:

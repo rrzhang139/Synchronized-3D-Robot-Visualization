@@ -10,6 +10,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "dropzone": "^6.0.0-beta.2",
     "three": "^0.158.0",
     "urdf-loader": "^0.10.4"
   },

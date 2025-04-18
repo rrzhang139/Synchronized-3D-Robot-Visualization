@@ -135,16 +135,16 @@ try {
         if (entry && entry.isDirectory) {
           uploadStatus.textContent = 'Reading mesh directory...';
           const meshFiles = await readDirectoryRecursively(entry);
+          console.log(meshFiles)
           
           for (const file of meshFiles) {
-            const relativePath = file.relativePath || file.name;
+            const relativePath = file.relativePath;
             formData.append(`mesh_files`, file, relativePath);
           }
           
           uploadStatus.textContent = `Found ${meshFiles.length} mesh files. Uploading...`;
         }
       }
-      console.log("uploading...")
       
       const response = await fetch(`https://${SERVER_BASE}/upload_urdf`, {
         method: 'POST',
@@ -157,19 +157,10 @@ try {
       }
       
       const result = await response.json();
-      console.log(result)
       
-      if (result.success) {
-        uploadStatus.textContent = 'Upload successful! Loading robot model...';
-        
-        visualization.loadRobotModel(result.model_url);
-        
-        setTimeout(() => {
-          uploadStatus.textContent = 'Robot model loaded successfully!';
-        }, 2000);
-      } else {
-        uploadStatus.textContent = `Error: ${result.message}`;
-      }
+      uploadStatus.textContent = 'Upload successful! Loading robot model...';
+      visualization.loadRobotModel(result.model_url);
+      uploadStatus.textContent = 'Robot model loaded successfully!';
       
     } catch (error) {
       console.error('Upload error:', error);

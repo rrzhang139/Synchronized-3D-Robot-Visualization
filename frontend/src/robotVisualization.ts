@@ -4,6 +4,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { URDFRobot } from 'urdf-loader';
 import { WebSocketClient } from './webSocketClient';
 import { MessageTypes } from './types/messageTypes';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 
 // @ts-ignore
 import URDFLoader from 'urdf-loader';
@@ -101,23 +103,68 @@ export class RobotVisualization {
     const loader = new URDFLoader();
     
     loader.loadMeshCb = (path: string, manager: THREE.LoadingManager, onComplete) => {
-      return new Promise((resolve) => {
+      console.log("Loading mesh from path:", path);
+      
+      // Determine file extension
+      const fileExtension = path.split('.').pop()?.toLowerCase();
+      
+      // Choose loader based on file extension
+      if (fileExtension === 'stl') {
+        const stlLoader = new STLLoader(manager);
+        stlLoader.load(
+          path,
+          (geometry: THREE.BufferGeometry) => {
+            // Create mesh from geometry
+            const material = new THREE.MeshPhongMaterial({ color: 0xAAAAAA, specular: 0x111111, shininess: 200 });
+            const mesh = new THREE.Mesh(geometry, material);
+            // Create a scene to hold the mesh
+            const scene = new THREE.Scene();
+            scene.add(mesh);
+            onComplete(scene);
+          },
+          (xhr: ProgressEvent) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+          },
+          (err: ErrorEvent) => {
+            console.log("STL load error:", err);
+            onComplete(null, err);
+          }
+        );
+      } else if (fileExtension === 'obj') {
+        const objLoader = new OBJLoader(manager);
+        objLoader.load(
+          path,
+          (object: THREE.Group) => {
+            onComplete(object);
+          },
+          (xhr: ProgressEvent) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+          },
+          (err: ErrorEvent) => {
+            console.log("OBJ load error:", err);
+            onComplete(null, err);
+          }
+        );
+      } else if (fileExtension === 'gltf' || fileExtension === 'glb') {
+        // Use GLTFLoader for gltf/glb files
         const gltfLoader = new GLTFLoader(manager);
         gltfLoader.load(
           path,
-          result => {
-            // this.scene.add( result.scene );
-            onComplete( result.scene );
+          (result) => {
+            onComplete(result.scene);
           },
-          xhr => {
-		        console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-	        },
-          err => {
-            console.log("load mesh error: ", err)
-              // onComplete( null, err );
+          (xhr) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+          },
+          (err) => {
+            console.log("GLTF load error:", err);
+            onComplete(null, err);
           }
         );
-      });
+      } else {
+        console.error(`Unsupported file type: ${fileExtension}`);
+        onComplete(null, new Error(`Unsupported file type: ${fileExtension}`));
+      }
     };
     
     loader.load(
