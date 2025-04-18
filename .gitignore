@@ -49,7 +49,3 @@ certs/*.crt
 
 # Build files
 frontend/dist/
-
-# Uploaded files
-backend/uploads/*
-!backend/uploads/.gitkeep
